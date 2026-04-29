@@ -1,0 +1,62 @@
+# PPO defaults. See report-notes.md for the rationale behind each value.
+# Override any field at the CLI: `--ent-coef 0.001`.
+# Or load a different YAML entirely: `--config configs/my-experiment.yaml`.
+
+# ----- Training budget --------------------------------------------------------
+total_timesteps: 10_000_000
+
+# Vectorized envs and rollout length per iteration (32 768 env steps / iter).
+num_envs: 16
+num_steps: 2048
+
+# ----- PPO update -------------------------------------------------------------
+update_epochs: 10
+minibatch_size: 64
+
+# ----- Optimization -----------------------------------------------------------
+learning_rate: 3.0e-4
+max_grad_norm: 0.5
+
+# ----- PPO clipping + GAE -----------------------------------------------------
+clip_coef: 0.2
+gamma: 0.99
+gae_lambda: 0.95
+
+# ----- Loss coefficients ------------------------------------------------------
+vf_coef: 0.5
+ent_coef: 0.001
+
+# ----- Misc -------------------------------------------------------------------
+normalize_advantage: true
+
+# ----- Network sizing (do not change without reason; see brief) ---------------
+hidden_width: 128
+hidden_layers: 2
+
+# Initial log std for the Gaussian policy.
+init_log_std: 0.0
+
+# ----- Env construction -------------------------------------------------------
+env_id: IADSPenetration-v0
+env_config_path: iads/default.yaml
+
+# ----- Checkpointing ----------------------------------------------------------
+checkpoint_dir: checkpoints
+checkpoint_every_iters: 20
+onnx_export: true
+
+# ----- Logging ----------------------------------------------------------------
+log_dir: runs
+run_name: ppo
+
+# ----- Eval-rollout video logging to TensorBoard ------------------------------
+video_enabled: true
+video_every_iters: 20
+video_fps: 10
+video_deterministic: true   # use actor mean (no sampling) for the video
+
+# ----- Device: "cpu", "cuda", "mps", or "auto" -------------------------------
+device: auto
+
+# ----- Reproducibility --------------------------------------------------------
+seed: 0

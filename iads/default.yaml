@@ -1,0 +1,75 @@
+# IADS Penetration scenario config.
+#
+# Loaded by iads/gym_env.py (and iads/game.py for human play). Reward weights
+# in this file feed the PPO-brief reward computation in gym_env.step().
+# Edit ppo/config.yaml separately for PPO hyperparameters.
+
+# ----- Episode + map ----------------------------------------------------------
+max_time: 200             # episode timeout in steps (truncation)
+area_width: 400.0         # km, x-axis
+area_height: 600.0        # km, y-axis (north is +y)
+
+# ----- Defender layout --------------------------------------------------------
+num_radars: 3
+num_sams: 6
+num_targets: 3
+
+# Radar
+radar_detection_range: 100.0          # km
+radar_classification_rate: 0.0001     # confidence gain per step (decoy/real)
+
+# SAM batteries
+sam_engagement_range: 70.0    # km
+sam_interceptors: 6           # initial ammo per SAM
+sam_pk: 0.70                  # base probability of kill
+sam_reload_time: 100.0        # steps between launches
+sam_proximity_delay: 4.0      # extra delay if a recent shot was at this position
+sam_proximity_threshold: 5.0  # km radius for "same position"
+
+# ----- Attacker (the agent's team) -------------------------------------------
+# NUM_AGENTS in gym_env.py is fixed at 4 (= num_real + num_decoy). Don't change
+# without also editing the obs layout.
+num_real_missiles: 2
+num_decoy_missiles: 2
+missile_speed: 4.0      # km/step (fuel cost is speed * dt regardless of motion)
+missile_altitude: 10.0  # initial altitude in km
+decoy_rcs: 1.0
+real_rcs: 1.0
+
+# Evasion mode (engaged when action[evasion] >= 0)
+evasion_pk_reduction: 0.30      # SAM Pk multiplied by (1 - this) when evading
+evasion_fuel_multiplier: 1.5    # fuel burn rate multiplier
+evasion_speed_multiplier: 0.7   # speed multiplier (slower while evading)
+
+# ----- Interceptors -----------------------------------------------------------
+interceptor_speed: 8.0  # km/step (twice missile speed)
+
+# ----- Detection / kill geometry ---------------------------------------------
+track_merge_distance: 3.0         # missiles within this radius look like one track
+altitude_detection_factor: 0.01   # higher altitude = slightly more visible
+hit_radius: 5.0                   # km; real missile within this of a target -> hit
+
+# ----- Layout perturbation ----------------------------------------------------
+perturbation_radius: 15.0  # max km of random jitter applied to template positions
+
+# ----- Launch zones (one is randomly chosen per reset) ------------------------
+launch_zones:
+  - {x_min:  20.0, x_max:  80.0, y_min: 5.0, y_max: 25.0}
+  - {x_min: 130.0, x_max: 190.0, y_min: 5.0, y_max: 25.0}
+  - {x_min: 220.0, x_max: 280.0, y_min: 5.0, y_max: 25.0}
+
+# ----- Reward weights ---------------------------------------------------------
+# Sum of these terms feeds gym_env.step() each timestep:
+reward_target_hit: 100.0          # +100 per real missile reaching a target
+reward_missile_destroyed: -20.0   # per real_intercepted or fuel_exhausted (real)
+reward_decoy_destroyed: -5.0      # per decoy_intercepted or fuel_exhausted (decoy)
+reward_timeout_zero_hits: -20.0   # once at terminal step if truncated and 0 hits
+reward_progress_alpha: 0.05       # potential-based shaping coefficient
+reward_time_penalty: -0.01        # every step
+
+# Decoy-bait shaping: bonus when a decoy is intercepted while shielding a real
+# missile. Fires only on decoy_intercepted events (not fuel_exhausted), and
+# only if a still-alive real missile is within `reward_decoy_bait_radius_km`
+# of the decoy at the moment it dies. Stacks with reward_decoy_destroyed (-5).
+reward_decoy_bait: 10.0           # bonus added on top of -5 -> net +5 per bait
+reward_decoy_bait_radius_km: 15.0 # how close a real must be for the bonus
