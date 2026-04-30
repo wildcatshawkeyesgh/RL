@@ -129,6 +129,9 @@ class IADSEnv(gymnasium.Env):
             cfg.get("reward_timeout_zero_hits", -20.0)
         )
         self._reward_progress_alpha = float(cfg.get("reward_progress_alpha", 0.05))
+        self._reward_decoy_progress_alpha = float(
+            cfg.get("reward_decoy_progress_alpha", 0.0)
+        )
         self._reward_time_penalty = float(cfg.get("reward_time_penalty", -0.01))
         self._reward_decoy_bait = float(cfg.get("reward_decoy_bait", 0.0))
         self._reward_decoy_bait_radius = float(
@@ -153,6 +156,7 @@ class IADSEnv(gymnasium.Env):
         self._launch_zone_idx: int = 0
         self._np_random = np.random.default_rng()
         self._prev_min_dist: float = 0.0
+        self._prev_min_decoy_dist: float = 0.0
         self._target_hits_this_ep: int = 0
 
     # -----------------------------------------------------------------------
@@ -203,6 +207,7 @@ class IADSEnv(gymnasium.Env):
         self.launch_all_missiles()
         self._target_hits_this_ep = 0
         self._prev_min_dist = self.compute_min_real_to_target_dist()
+        self._prev_min_decoy_dist = self.compute_min_decoy_to_target_dist()
 
         obs = self.build_observation()
         info = self.build_info()
@@ -244,6 +249,13 @@ class IADSEnv(gymnasium.Env):
         curr_min_dist = self.compute_min_real_to_target_dist()
         reward += self._reward_progress_alpha * (self._prev_min_dist - curr_min_dist)
         self._prev_min_dist = curr_min_dist
+
+        # Optional separate shaping for decoys (off by default — alpha=0.0).
+        curr_min_decoy_dist = self.compute_min_decoy_to_target_dist()
+        reward += self._reward_decoy_progress_alpha * (
+            self._prev_min_decoy_dist - curr_min_decoy_dist
+        )
+        self._prev_min_decoy_dist = curr_min_decoy_dist
 
         # Episode termination
         all_targets_dead = all(not t.alive for t in self.sim.targets)
@@ -343,6 +355,25 @@ class IADSEnv(gymnasium.Env):
             return 0.0
         best = float("inf")
         for m in live_reals:
+            for t in alive_tgts:
+                d = float(np.linalg.norm(t.pos[:2] - m.pos[:2]))
+                if d < best:
+                    best = d
+        return best
+
+    def compute_min_decoy_to_target_dist(self) -> float:
+        """Minimum 2D distance from any living DECOY missile to any alive target."""
+        alive_tgts = [t for t in self.sim.targets if t.alive]
+        live_decoys = [
+            m
+            for m in self.sim.missiles
+            if m.missile_type == EntityType.DECOY_MISSILE
+            and m.state == MissileState.IN_FLIGHT
+        ]
+        if not alive_tgts or not live_decoys:
+            return 0.0
+        best = float("inf")
+        for m in live_decoys:
             for t in alive_tgts:
                 d = float(np.linalg.norm(t.pos[:2] - m.pos[:2]))
                 if d < best:

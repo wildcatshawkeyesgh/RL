@@ -64,7 +64,8 @@ reward_target_hit: 100.0          # +100 per real missile reaching a target
 reward_missile_destroyed: -20.0   # per real_intercepted or fuel_exhausted (real)
 reward_decoy_destroyed: -5.0      # per decoy_intercepted or fuel_exhausted (decoy)
 reward_timeout_zero_hits: -20.0   # once at terminal step if truncated and 0 hits
-reward_progress_alpha: 0.05       # potential-based shaping coefficient
+reward_progress_alpha: 0.10       # potential-based shaping coefficient
+reward_decoy_progress_alpha: 0.05
 reward_time_penalty: -0.01        # every step
 
 # Decoy-bait shaping: bonus when a decoy is intercepted while shielding a real

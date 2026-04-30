@@ -39,6 +39,8 @@ class PPOAgent:
         self.optimizer = optim.Adam(
             self.network.parameters(), lr=config.learning_rate
         )
+        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        self.optimizer, T_max=300, eta_min=0.000003)
 
     @torch.no_grad()
     def select_action(self, obs):
@@ -60,7 +62,11 @@ class PPOAgent:
         if cfg.normalize_advantage:
             buffer.advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        last_policy_loss = last_value_loss = last_entropy = last_kl_divergence = last_clip_frac = 0.0
+        policy_losses = []
+        value_losses = []
+        entropies = []
+        kl_divergences = []
+        clip_fracs = []
         ratio_max_seen = float("-inf")
         ratio_min_seen = float("inf")
 
@@ -104,22 +110,22 @@ class PPOAgent:
                     ratio_max = float(ratio.max().item())
                     ratio_min = float(ratio.min().item())
 
-                last_policy_loss = float(policy_loss.item())
-                last_value_loss = float(value_loss.item())
-                last_entropy = float(-entropy_loss.item())
-                last_kl_divergence = float(approx_kl.item())
-                last_clip_frac = float(clip_frac.item())
+                policy_losses.append(float(policy_loss.item()))
+                value_losses.append(float(value_loss.item()))
+                entropies.append(float(-entropy_loss.item()))
+                kl_divergences.append(float(approx_kl.item()))
+                clip_fracs.append(float(clip_frac.item()))
                 if ratio_max > ratio_max_seen:
                     ratio_max_seen = ratio_max
                 if ratio_min < ratio_min_seen:
                     ratio_min_seen = ratio_min
-
+        self.scheduler.step()
         return UpdateStats(
-            policy_loss = last_policy_loss,
-            value_loss = last_value_loss,
-            entropy = last_entropy,
-            approx_kl = last_kl_divergence,
-            clip_frac = last_clip_frac,
+            policy_loss = sum(policy_losses) / len(policy_losses),
+            value_loss = sum(value_losses) / len(value_losses),
+            entropy = sum(entropies) / len(entropies),
+            approx_kl = sum(kl_divergences) / len(kl_divergences),
+            clip_frac = sum(clip_fracs) / len(clip_fracs),
             explained_variance = explained_variance,
             ratio_max = ratio_max_seen,
             ratio_min = ratio_min_seen,
