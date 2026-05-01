@@ -1,8 +1,43 @@
 **Project: Deep Reinforcement Learning for IADS Penetration Planning Using a Transformer World Model**
 
+**How to setup and run**
+
+clone this directory to wherever you want to run it.
+
+Then run uv sync.
+
+To run just a single run use this command and change the name to whatever you want it to be:
+
+uv run python -m scripts.ppo_impl --run-name init_log_mean
+
+To create a video use this command uv run python -m scripts.compare_checkpoints \
+    checkpoints/init_log_mean/checkpoint_000655360.onnx \ 
+checkpoints/init_log_mean/checkpoint_003276800.onnx \
+checkpoints/init_log_mean/checkpoint_007864320.onnx \
+checkpoints/init_log_mean/checkpoint_009994240.onnx \
+--seed 42 \
+    --output runs/<run-name>_progression.mp4
+
+To run the tensorboard use:
+
+uv run tensorboard --logdir runs 
+
+To run a simple study use:./scripts/run_studies.sh     "gamma-0.995:--gamma 0.995"     "logstd--0.8:--init-log-std -0.8"     "hidden-3:--hidden-layers 3"
+
+**Editing Variables and Environment**
+
+All of the rewards parameters and the enrionment variables can be set in the iads folder on the default.yaml file.
+
+The hyperparameters for the neural network/reinforcement learning can be found in ppo/config.yaml
+
+It would be intersting to run a real study on this with MLFlow and Ax instead of just viewing the data with tensorboard.
+
+
 **Dataset Description**
 
 This project uses reinforcement learning rather than a dataset. The training data is generated through agent environment interaction within a custom environment. Each episode of the simulation produces state,action, and reward values that serve as the training data for the neural network.
+
+
 
 The simulation models a missile strike planning scenario against an Integrated Air Defense System (IADS). The attacking blue model controls real strike missiles and decoy missiles attempting to penetrate a network of radar sites and SAM batteries to destroy targets. The defender is controlled by a simple script. The red model has randomness to it in terms of the positions of the SAMS, early warning radars, and targets. They are biased so that the targets are always behind the SAMS and EWR, while having the EWR in the front of the SAMS.
 
@@ -57,3 +92,4 @@ Currently the game runs and can be played and the simulation engine should be ab
 I am planning on using a gymnasium environemnt which is currently being built. I am planning on using TorchRL which is a sublibrary of PyTorch. I have been doing research and gathering my thoughts on whether I want to attmept to create a mini transdreamer architecture and whether it would be feasible to do in 
 our time frame. If I did go that route I would likely not have a lot of time to do a full evaluation of reward functions and hyperparameters. I do believe a multi layer perceptron would mostlikely yield
 the same or better results but I am merely intersted in using a transfromer like this in combination of reinforcement learning.
+
